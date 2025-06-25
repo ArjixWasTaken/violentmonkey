@@ -1,7 +1,7 @@
 const webpack = require('webpack');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const { ListBackgroundScriptsPlugin } = require('./manifest-helper');
-const { addWrapperWithGlobals } = require('./webpack-util');
+const { addWrapperWithGlobals, getCodeMirrorThemes } = require('./webpack-util');
 const ProtectWebpackBootstrapPlugin = require('./webpack-protect-bootstrap-plugin');
 const { getVersion } = require('./version-helper');
 const { configLoader } = require('./config-helper');
@@ -46,6 +46,7 @@ const defsObj = {
     'SYNC_DROPBOX_CLIENT_ID',
   ]),
   'process.env.INIT_FUNC_NAME': JSON.stringify(INIT_FUNC_NAME),
+  'process.env.CODEMIRROR_THEMES': JSON.stringify(getCodeMirrorThemes()),
   'process.env.DEV': JSON.stringify(!isProd),
   'process.env.TEST': JSON.stringify(process.env.BABEL_ENV === 'test'),
 };
