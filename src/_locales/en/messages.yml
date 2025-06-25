@@ -152,11 +152,9 @@ descCustomCSS:
 descEditorOptions:
   description: Description of editor options JSON section.
   message: >-
-    Custom options for CodeMirror and addons in JSON object like
-    <code>{"indentUnit":2, "smartIndent":true}</code> however note that some of
-    them may not work in Violentmonkey. See <a
-    href="https://codemirror.net/doc/manual.html#config" target="_blank"
-    rel="noopener noreferrer">full list</a>.
+    Custom options for Monaco Editor in JSON object like
+    <code>{"tabSize":2, "smoothScrolling":true}</code>.
+    Refer to Monaco Editor documentation for a full list of available options.
 descEditorOptionsGeneric:
   description: Description of editor options in VM settings.
   message: >-
@@ -167,11 +165,16 @@ descEditorOptionsGeneric:
 descEditorOptionsVM:
   description: Description of nonstandard editor options in VM settings.
   message: >-
-    Nonstandard options: <code>autocompleteOnTyping</code> is a delay in
-    milliseconds to display autocomplete hints after typing (<code>0</code> =
-    disable), <code>killTrailingSpaceOnSave</code> automatically removes
-    trailing spaces in each line when saving, <code>showTrailingSpace</code>
-    shows the trailing spaces as dots.
+    Violentmonkey-specific interpretations or conveniences for Monaco options:
+    <code>autoCloseBrackets</code>: Handles whether brackets and quotes should be autoclosed. (Monaco: editor.autoClosingBrackets)
+    <code>autocompleteOnTyping</code>: Handles whether to show suggestions automatically while typing. (Monaco: editor.quickSuggestions, editor.suggestOnTriggerCharacters)
+    <code>foldGutter</code>: Handles whether the gutter displayed to the left of the editor can be clicked to fold a block of code. (Monaco: editor.folding, editor.showFoldingControls)
+    <code>highlightSelectionMatches</code>: Handles whether to search for all occurrences of the currently selected text. (Monaco: editor.selectionHighlight)
+    <code>lineNumbers</code>: Handles whether to show line numbers to the left of the editor. (Monaco: editor.lineNumbers)
+    <code>lineWrapping</code>: Handles whether the editor should scroll or wrap for long lines. (Monaco: editor.wordWrap)
+    <code>matchBrackets</code>: Handles whether to highlight matching brackets. (Monaco: editor.matchBrackets)
+    <code>showTrailingSpace</code>: Handles whether to show trailing spaces. (Monaco: editor.renderWhitespace)
+    <code>killTrailingSpaceOnSave</code>: Handles whether to kill trailing spaces on save. (Monaco: editor.trimAutoWhitespace)
 descScriptTemplate:
   description: Description of script template section.
   message: >-

@@ -157,16 +157,9 @@ descCustomCSS:
 descEditorOptions:
   description: Description of editor options JSON section.
   message: >-
-    Options personnalisées pour CodeMirror et extensions dans un objet JSON
-    comme<code>{"indentUnit":2, "smartIndent":true}</code>, cependant notez que
-    certaines peuvent ne pas marcher dans Violentmonkey. Voir la <a
-    href="https://codemirror.net/doc/manual.html#config" target="_blank"
-    rel="noopener noreferrer">liste complète</a>. Pour utiliser un thème
-    CodeMirror, spécifiez son nom de fichier comme <code>"theme":
-    "3024-day"</code> ici et collez le <a
-    href="https://github.com/codemirror/CodeMirror/tree/master/theme"
-    target="_blank" rel="noopener noreferrer">CSS du thème en lui-même</a> dans
-    le champ « Style personnalisé » ci-dessous.
+    Options personnalisées pour Monaco Editor dans un objet JSON
+    comme<code>{"tabSize":2, "smoothScrolling":true}</code>.
+    Consultez la documentation de Monaco Editor pour une liste complète des options disponibles.
 descEditorOptionsGeneric:
   description: Description of editor options in VM settings.
   message: >-
@@ -178,12 +171,16 @@ descEditorOptionsGeneric:
 descEditorOptionsVM:
   description: Description of nonstandard editor options in VM settings.
   message: >-
-    Options non standard : <code>autocompleteOnTyping</code> est un délai
-    exprimé en millisecondes pour l'affichage des indices de la saisie
-    semi-automatique après la frappe (<code>0</code> = désactivé),
-    <code>killTrailingSpaceOnSave</code> supprime automatiquement les espaces de
-    fin de ligne lors de l'enregistrement, <code>showTrailingSpace</code>
-    affiche les espaces de fin de ligne sous forme de points.
+    Interprétations ou facilités spécifiques à Violentmonkey pour les options Monaco :
+    <code>autoCloseBrackets</code>: Gère si les crochets et les guillemets doivent être fermés automatiquement. (Monaco: editor.autoClosingBrackets)
+    <code>autocompleteOnTyping</code>: Gère si les suggestions doivent être affichées automatiquement lors de la frappe. (Monaco: editor.quickSuggestions, editor.suggestOnTriggerCharacters)
+    <code>foldGutter</code>: Gère si la gouttière affichée à gauche de l'éditeur peut être cliquée pour plier un bloc de code. (Monaco: editor.folding, editor.showFoldingControls)
+    <code>highlightSelectionMatches</code>: Gère si toutes les occurrences du texte actuellement sélectionné doivent être recherchées. (Monaco: editor.selectionHighlight)
+    <code>lineNumbers</code>: Gère si les numéros de ligne doivent être affichés à gauche de l'éditeur. (Monaco: editor.lineNumbers)
+    <code>lineWrapping</code>: Gère si l'éditeur doit faire défiler ou envelopper les longues lignes. (Monaco: editor.wordWrap)
+    <code>matchBrackets</code>: Gère si les crochets correspondants doivent être mis en surbrillance. (Monaco: editor.matchBrackets)
+    <code>showTrailingSpace</code>: Gère si les espaces de fin doivent être affichés. (Monaco: editor.renderWhitespace)
+    <code>killTrailingSpaceOnSave</code>: Gère si les espaces de fin doivent être supprimés lors de l'enregistrement. (Monaco: editor.trimAutoWhitespace)
 descScriptTemplate:
   description: Description of script template section.
   message: >-

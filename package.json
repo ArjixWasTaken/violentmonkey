@@ -101,7 +101,6 @@
   "dependencies": {
     "@violentmonkey/shortcut": "^1.2.6",
     "@zip.js/zip.js": "2.4.4",
-    "codemirror": "^5.65.10",
     "monaco-editor": "^0.41.0",
     "tldts": "^6.0.14",
     "vue": "^3.4.38",

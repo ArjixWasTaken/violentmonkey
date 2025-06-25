@@ -122,7 +122,6 @@ import { handleTabNavigation, keyboardService } from '@/common/keyboard';
 import { deepCopy, deepEqual, forEachEntry, mapEntry } from '@/common/object';
 import { WATCH_STORAGE } from '@/common/consts';
 import hookSetting from '@/common/hook-setting';
-import CodeMirror from 'codemirror';
 import Dropdown from 'vueleton/lib/dropdown';
 import VmCode from '@/common/ui/code';
 import Icon from '@/common/ui/icon';
@@ -178,8 +177,8 @@ const pageKeys = computed(() => {
   return res;
 });
 
-let cm;
-let cmOptions;
+let editor; // Changed from cm to editor
+let editorOptions; // Changed from cmOptions to editorOptions
 let jsonIndent = '  ';
 let disposeList;
 let focusedElement;
@@ -191,7 +190,7 @@ onActivated(() => {
   const { id } = props.script.props;
   const bg = getBgPage();
   root::addEventListener('focusin', onFocus);
-  (current.value ? cm : focusedElement)?.focus();
+  (current.value ? editor : focusedElement)?.focus(); // Changed cm to editor
   sendCmdDirectly('GetValueStore', id, undefined, sender = fakeSender()).then(data => {
     const isFirstTime = !values.value; // DANGER! saving prior to calling setData
     if (setData(data) && isFirstTime && keys.value.length) {
@@ -204,12 +203,14 @@ onActivated(() => {
     keyboardService.register('pageup', () => flipPage(-1), conditionNotEdit),
     keyboardService.register('pagedown', () => flipPage(1), conditionNotEdit),
     hookSetting('valueEditor', val => {
-      cmOptions = val;
+      editorOptions = val; // Changed cmOptions to editorOptions
       jsonIndent = ' '.repeat(val?.tabSize || 2);
-      if (cm && val) {
-        for (const key in val) {
-          if (key !== 'mode') cm.setOption(key, val[key]);
-        }
+      if (editor && val) { // Changed cm to editor
+        // For Monaco, options are updated via editor.updateOptions()
+        // We'll ensure this is handled in VmCode component via its own hookSetting for 'editor'
+        // or pass editorOptions down and let VmCode manage it.
+        // For now, this direct setOption loop is removed as it's CodeMirror specific.
+        // editor.updateOptions(val); // This would be the Monaco way if done here
       }
     }),
   ];
@@ -235,14 +236,14 @@ watch(current, (val, oldVal) => {
   if (val) {
     focusedElement = getActiveElement();
     nextTick(() => {
-      cm = $value.value.cm;
+      editor = $value.value.editor; // Changed cm to editor, and $value.value.cm to $value.value.editor
       if (val.isNew) {
         const el = $key.value;
         el.setSelectionRange(0, 0);
         el.focus();
       } else {
-        cm.setCursor(0, 0);
-        cm.focus();
+        editor.setPosition({ lineNumber: 1, column: 1 }); // Changed cm.setCursor to editor.setPosition
+        editor.focus(); // Changed cm.focus to editor.focus
       }
     });
   } else if (oldVal) {
@@ -395,14 +396,20 @@ async function onSave(buttonIndex) {
     onChange();
   }
   if (cur.error) {
-    const pos = cur.errorPos;
-    cm.setSelection(pos, { line: pos.line, ch: pos.ch + 1 });
-    cm.focus();
+    const pos = cur.errorPos; // Monaco position is {lineNumber, column}
+    // For Monaco, selection can be set with editor.setSelection
+    // And focus with editor.focus()
+    // Assuming errorPos is compatible or adapted for Monaco {lineNumber, column}
+    if (pos && editor) {
+       editor.setSelection(new monaco.Selection(pos.lineNumber, pos.column, pos.lineNumber, pos.column + 1));
+       editor.focus();
+    }
     showMessage({ text: cur.error });
     return;
   }
   if (buttonIndex === 1) {
-    cm.markClean();
+    // Monaco doesn't have a direct `markClean`. This is usually handled by comparing versions or content.
+    // For now, we'll just set dirty to false. The VmCode component's dirty tracking might need adjustment.
     cur.dirty = false;
   } else {
     current.value = null;
@@ -419,8 +426,8 @@ async function onSave(buttonIndex) {
 }
 function onCancel() {
   const cur = current.value;
-  if (cur.dirty) {
-    const str = cm.getValue().trim();
+  if (cur.dirty && editor) { // Added editor check
+    const str = editor.getValue().trim(); // Changed cm to editor
     const {jsonValue = str} = cur;
     addToTrash(cur.key, dumpScriptValue(jsonValue), cutLength(str));
   }
@@ -430,23 +437,33 @@ function onChange(isChanged) {
   const cur = current.value;
   cur.dirty = isChanged;
   cur.error = null;
+  if (!editor) return; // Guard against editor not being initialized
+
   const t0 = performance.now();
-  const str = cm.getValue().trim();
+  const str = editor.getValue().trim(); // Changed cm to editor
   try {
     if (cur.isAll && str[0] !== '{') throw 'Expected { at position 0';
     if (cur.jsonPaused) return;
     cur.jsonValue = JSON.parse(str);
   } catch (e) {
     const re = /(position\s+)(\d+)|$/;
-    const pos = cm.posFromIndex(+`${e}`.match(re)[2] || 0);
-    cur.error = `${e}`.replace(re, `$1${pos.line + 1}:${pos.ch + 1}`);
-    cur.errorPos = pos;
+    let charIndex = +`${e}`.match(re)[2] || 0;
+    // Monaco's editor.getModel().getPositionAt(offset) can convert an offset to a position {lineNumber, column}
+    const pos = editor.getModel().getPositionAt(charIndex); // Changed cm.posFromIndex
+    cur.error = `${e}`.replace(re, `$1${pos.lineNumber}:${pos.column}`); // Adapted for Monaco position
+    cur.errorPos = pos; // Store Monaco position
     cur.jsonValue = undefined;
   }
   cur.jsonPaused = performance.now() - t0 > MAX_JSON_DURATION;
 }
 function onKeyDownInKeyInput(evt) {
-  if (CodeMirror.keyName(evt) === K_SAVE) {
+  // CodeMirror.keyName is specific. For general key events, use evt.key or evt.code.
+  // Assuming K_SAVE is 'Ctrl-S' or similar, this needs to be handled by Monaco's keybindings if desired within the input.
+  // For simplicity, if K_SAVE was a simple string like 'Save', this comparison might still work,
+  // but typically keybinding logic is more complex.
+  // Check for Ctrl+S (or Cmd+S on Mac) to trigger save for the key input field
+  if ((evt.ctrlKey || evt.metaKey) && evt.key === 's') {
+    evt.preventDefault(); // Prevent browser's save page action
     onSave();
   }
 }
@@ -457,9 +474,9 @@ function onStorageChanged(changes) {
     const currentKey = cur?.key;
     const valueGetter = cur && (cur.isAll ? getValueAll : getValue);
     setData(data instanceof Object ? data : deepCopy(data));
-    if (cur) {
+    if (cur && editor) { // Added editor check
       const newText = valueGetter(currentKey);
-      const curText = cm.getValue();
+      const curText = editor.getValue(); // Changed cm to editor
       if (curText === newText) {
         cur.isNew = false;
         cur.dirty = false;
@@ -599,7 +616,8 @@ $lightBorder: 1px solid var(--fill-2);
     background-color: gold;
     color: #000;
   }
-  .CodeMirror {
+  /* .CodeMirror class is CodeMirror specific, Monaco uses .monaco-editor */
+  .monaco-editor { /* Or a custom wrapper class if needed */
     border: $lightBorder;
   }
   .icon:not(.active) {

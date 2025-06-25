@@ -36,15 +36,8 @@ export const kUpdateURL = 'updateURL';
 export const TOGGLE_ON = 'toggle-on';
 export const TOGGLE_OFF = 'toggle-off';
 
-export let K_SAVE; // deduced from the current CodeMirror keymap
-
-export function inferSaveHotKey(hotkeys) {
-  K_SAVE = hotkeys.find(([, cmd]) => cmd === 'save')?.[0];
-  if (!K_SAVE) {
-    K_SAVE = 'Ctrl-S';
-    hotkeys.unshift([K_SAVE, 'save']);
-  }
-}
+// K_SAVE and inferSaveHotKey are removed as Monaco editor handles its own save command (Ctrl+S)
+// and specific input fields can check for Ctrl+S directly if needed.
 
 export function markRemove(script, removed) {
   return sendCmdDirectly('MarkRemoved', {

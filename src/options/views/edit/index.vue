@@ -47,6 +47,7 @@
       :class="{ readonly: frozen }"
       :value="code"
       :readOnly="frozen"
+      :mode="scriptMode"
       ref="$code"
       v-show="nav === 'code'"
       :active="nav === 'code'"
@@ -159,7 +160,7 @@ import { computed, nextTick, onActivated, onDeactivated, onMounted, ref, watch }
 import VmCode from '@/common/ui/code';
 import VmExternals from '@/common/ui/externals';
 import LocaleGroup from '@/common/ui/locale-group';
-import { inferSaveHotKey, K_SAVE, kStorageSize, store } from '../../utils';
+import { kStorageSize, store } from '../../utils'; // Removed K_SAVE, inferSaveHotKey
 import VmSettings from './settings';
 import VMSettingsUpdate from './settings-update';
 import VmValues from './values';
@@ -237,6 +238,22 @@ const navItems = computed(() => {
 });
 const scriptName = computed(() => (store.title = getScriptName(script.value)));
 
+const scriptMode = computed(() => {
+  const name = script.value?.meta?.name || '';
+  // Prioritize .user.js check for userjs mode
+  if (name.endsWith('.user.js')) {
+    return 'userjs';
+  }
+  if (name.endsWith('.css')) {
+    return 'css';
+  }
+  if (name.endsWith('.ts') || name.endsWith('.tsx')) {
+    return 'typescript';
+  }
+  // Default to javascript for .js files or unknown
+  return 'javascript';
+});
+
 watch(nav, async val => {
   await nextTick();
   if (val === 'code') CM.focus();
@@ -289,8 +306,8 @@ onMounted(() => {
   hk.push(['Ctrl-F', 'Find']);
   hk.push(['Ctrl-H', 'Replace']);
   hk.push(['F1', 'Show All Commands']);
-
-  if (!K_SAVE) inferSaveHotKey(hk);
+  // K_SAVE and inferSaveHotKey removed, editor handles its own save.
+  // The main save hotkey for the page is handled by keyboardService.register below.
 });
 
 onActivated(() => {

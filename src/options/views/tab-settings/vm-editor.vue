@@ -3,13 +3,14 @@
     <h3 v-text="i18n('labelEditor')"></h3>
     <div class="mb-1 mr-1c flex center-items">
       <span v-text="i18n('labelTheme')"/>
-      <select v-model="theme" :disabled="busy" :title="themeCss">
-        <option :value="DEFAULT" v-text="i18n('labelRunAtDefault')"/>
-        <option value="" v-text="i18n('labelBadgeNone')"/>
-        <option v-for="name in THEMES" :key="name" v-text="name"/>
+      <select v-model="theme">
+        <option :value="DEFAULT_THEME" v-text="i18n('labelRunAtDefault')"/>
+        <!-- <option value="" v-text="i18n('labelBadgeNone')"/> removed as Monaco themes are always set -->
+        <option v-for="name in MONACO_THEMES" :key="name" :value="name" v-text="name"/>
       </select>
-      <a :href="ghURL" target="_blank">&nearr;</a>
-      <p v-text="error"/>
+      <!-- Removed link to CodeMirror themes and error display related to fetching them -->
+      <!-- <a :href="ghURL" target="_blank">&nearr;</a> -->
+      <!-- <p v-text="error"/> -->
     </div>
     <p class="my-1" v-html="i18n('descEditorOptions')"/>
     <setting-text name="editor" json has-reset @dblclick="toggleBoolean">
@@ -30,114 +31,92 @@
 </template>
 
 <script>
-const keyThemeCSS = 'editorTheme';
+// Monaco themes are typically 'vs', 'vs-dark', 'hc-black'. Custom themes can be added.
+// We'll simplify the theme selection to these, or allow users to specify one if they know how to add it.
+// For now, removing the dynamic fetching of CodeMirror themes.
 const keyThemeNAME = 'editorThemeName';
-const THEMES = process.env.CODEMIRROR_THEMES;
-const gh = 'github.com';
-const ghREPO = 'codemirror/CodeMirror';
-const ghBRANCH = 'master';
-const ghPATH = 'theme';
-const ghURL = `https://${gh}/${ghREPO}/tree/${ghBRANCH}/${ghPATH}`;
-const DEFAULT = 'default';
-const previewLINES = 20;
-const previewLENGTH = 100;
-const makeTextPreview = css => (
-  css
-    ? css.split('\n', previewLINES + 1).map((s, i) => (
-      i === previewLINES && (
-        '...'
-      ) || s.length > previewLENGTH && (
-        `${s.slice(0, previewLENGTH)}...`
-      ) || s
-    )).join('\n')
-    : null
-);
+const DEFAULT_THEME = 'vs'; // Default Monaco theme
+const MONACO_THEMES = ['vs', 'vs-dark', 'hc-black']; // Standard Monaco themes
+
+// The concept of fetching CSS for themes is not directly applicable to Monaco in the same way.
+// Monaco themes are self-contained or loaded via its loader.
+// So, keyThemeCSS and related logic (fetchUrl, makeTextPreview for CSS) are removed.
 </script>
 
 <script setup>
 import options from '@/common/options';
 import hookSetting from '@/common/hook-setting';
-import { getActiveElement } from '@/common/ui';
+// import { getActiveElement } from '@/common/ui'; // Not used after removing fetchUrl
 import SettingText from '@/common/ui/setting-text';
 import { nextTick, onMounted, ref, watch } from 'vue';
 import Icon from '@/common/ui/icon';
 import { toggleBoolean } from "@/options/utils";
-// import cmDefaults from '@/common/ui/code-defaults'; // Removed import
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'; // For Monaco editor options
 
 const $el = ref();
 const hint = ref();
 const hintShown = ref(false);
 const info = ref();
-const busy = ref();
-const error = ref();
-const themeCss = ref();
+// const busy = ref(); // No longer fetching themes
+// const error = ref(); // No longer fetching themes
+// const themeCss = ref(); // Monaco themes don't have separate CSS previews in this manner
 const theme = ref();
 
 onMounted(async () => {
-  await options.ready; // Waiting for hookSetting to set the value before watching for changes
+  await options.ready;
   let fromHook;
   watch(hintShown, toggleStateHint);
   watch(theme, async val => {
-    if (fromHook) { // Do nothing if triggered by a duplicate Violentmonkey tab or sync
+    if (fromHook) {
       fromHook = false;
       return;
     }
-    const url = val && val !== DEFAULT
-        && `https://raw.githubusercontent.com/${ghREPO}/${ghBRANCH}/${ghPATH}/${val}.css`;
-    const css = url && await fetchUrl(url);
-    options.set(keyThemeNAME, !url || css ? val : DEFAULT);
-    options.set(keyThemeCSS, css || '');
+    // With Monaco, theme is just a string name. Setting it in options will be picked up by code.vue
+    options.set(keyThemeNAME, val || DEFAULT_THEME);
   });
   hookSetting(keyThemeNAME, val => {
-    if (theme.value != (val ??= DEFAULT)) {
+    const newTheme = val || DEFAULT_THEME;
+    if (theme.value != newTheme) {
       fromHook = true;
-      theme.value = val;
+      theme.value = newTheme;
     }
   });
-  hookSetting(keyThemeCSS, val => {
-    themeCss.value = makeTextPreview(val);
-  });
+  // No longer need to watch/set themeCss
 });
 
-async function fetchUrl(url, method = 'text') {
-  const el = getActiveElement();
-  busy.value = true;
-  try {
-    const res = await (await fetch(url))[method]();
-    error.value = null;
-    return res;
-  } catch (e) {
-    error.value = e.message || e.code || `${e}`;
-  } finally {
-    busy.value = false;
-    await nextTick();
-    el?.focus();
-  }
-}
+// fetchUrl is removed as it was for CodeMirror theme CSS.
+
 async function toggleStateHint(curValue) {
   let res;
   if (curValue) {
-    const HIDE_OPTS = [
-      // we activate only one mode: js
-      'mode',
-      // duh
-      'value',
-      // these accept only a function
-      'configureMouse',
-      'lineNumberFormatter',
-      'specialCharPlaceholder',
-    ];
-    const opts = {};
-    Object.entries({
-      ...(await import('codemirror')).default.defaults, //TODO: Monaco doesn't have a single defaults export like this. This needs to be re-thought.
-      // ...cmDefaults, // cmDefaults was removed
-      ...options.get('editor'),
-    })
-    // sort by keys alphabetically to make it more readable
-    .sort(([a], [b]) => (a < b ? -1 : a > b))
-    .filter(([key, val]) => !HIDE_OPTS.includes(key) && !isFunction(val))
-    .forEach(([key, val]) => { opts[key] = val; });
-    res = JSON.stringify(opts, null, '  ');
+    // Monaco editor options are structured differently.
+    // This is a simplified representation. For a full list, refer to Monaco's IEditorOptions.
+    // We'll show the currently configured options from `options.get('editor')`
+    // and some common Monaco defaults for context if needed.
+    const editorOpts = options.get('editor') || {};
+    const monacoSpecificDefaults = { // A few examples, not exhaustive
+        // These are often derived from userOpts in code.vue, so showing them here might be redundant
+        // or could show the base defaults before user overrides.
+        // For simplicity, just showing the user's current settings.
+    };
+
+    const combinedOptions = {
+        ...monacoSpecificDefaults, // Show some Monaco defaults first
+        ...editorOpts, // Then user's overrides
+    };
+
+    // Filter out complex objects or functions for readability if necessary
+    const simplifiedOpts = {};
+    Object.entries(combinedOptions)
+        .sort(([a], [b]) => (a < b ? -1 : a > b))
+        .forEach(([key, val]) => {
+            if (typeof val !== 'function' && (typeof val !== 'object' || val === null || Array.isArray(val))) {
+                simplifiedOpts[key] = val;
+            } else if (typeof val === 'object' && key === 'minimap') { // specifically include minimap object
+                 simplifiedOpts[key] = val;
+            }
+        });
+    res = JSON.stringify(simplifiedOpts, null, '  ');
   }
   hint.value = res;
   if (res) {

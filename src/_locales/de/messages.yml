@@ -152,11 +152,9 @@ descCustomCSS:
 descEditorOptions:
   description: Description of editor options JSON section.
   message: >-
-    Benutzerdefinierte Optionen für CodeMirror und Add-ons in JSON Object wie
-    <code>{"indentUnit":2, "smartIndent":true}</code>, möglicherweise werden
-    einige von ihnen jedoch nicht mit Violentmonkey funktionieren. Konsultieren
-    Sie die <a href="https://codemirror.net/doc/manual.html#config"
-    target="_blank" rel="noopener noreferrer">vollständige Liste</a>.
+    Benutzerdefinierte Optionen für Monaco Editor in JSON Object wie
+    <code>{"tabSize":2, "smoothScrolling":true}</code>.
+    Konsultieren Sie die Monaco Editor Dokumentation für eine vollständige Liste verfügbarer Optionen.
 descEditorOptionsGeneric:
   description: Description of editor options in VM settings.
   message: >-
@@ -167,12 +165,16 @@ descEditorOptionsGeneric:
 descEditorOptionsVM:
   description: Description of nonstandard editor options in VM settings.
   message: >-
-    Nicht übliche Optionen: <code>autocompleteOnTyping</code> ist eine
-    Verzögerung in Millisekunden um Autovervollständingungs-Vorschläge nach dem
-    Eintippen anzuzeigen (<code>0</code> = deaktivieren).
-    <code>killTrailingSpaceOnSave</code> entfernt automatisch überflüssige
-    Leerzeichen in Zeilen beim Speichern, <code>showTrailingSpace</code> zeigt
-    die überflüssigen Leerzeichen als Punkte.
+    Violentmonkey-spezifische Interpretationen oder Vereinfachungen für Monaco-Optionen:
+    <code>autoCloseBrackets</code>: Behandelt, ob Klammern und Anführungszeichen automatisch geschlossen werden sollen. (Monaco: editor.autoClosingBrackets)
+    <code>autocompleteOnTyping</code>: Behandelt, ob Vorschläge während der Eingabe automatisch angezeigt werden sollen. (Monaco: editor.quickSuggestions, editor.suggestOnTriggerCharacters)
+    <code>foldGutter</code>: Behandelt, ob der links vom Editor angezeigte Rand zum Einklappen eines Codeblocks angeklickt werden kann. (Monaco: editor.folding, editor.showFoldingControls)
+    <code>highlightSelectionMatches</code>: Behandelt, ob nach allen Vorkommen des aktuell ausgewählten Textes gesucht werden soll. (Monaco: editor.selectionHighlight)
+    <code>lineNumbers</code>: Behandelt, ob Zeilennummern links vom Editor angezeigt werden sollen. (Monaco: editor.lineNumbers)
+    <code>lineWrapping</code>: Behandelt, ob der Editor bei langen Zeilen scrollen oder umbrechen soll. (Monaco: editor.wordWrap)
+    <code>matchBrackets</code>: Behandelt, ob übereinstimmende Klammern hervorgehoben werden sollen. (Monaco: editor.matchBrackets)
+    <code>showTrailingSpace</code>: Behandelt, ob nachfolgende Leerzeichen angezeigt werden sollen. (Monaco: editor.renderWhitespace)
+    <code>killTrailingSpaceOnSave</code>: Behandelt, ob nachfolgende Leerzeichen beim Speichern entfernt werden sollen. (Monaco: editor.trimAutoWhitespace)
 descScriptTemplate:
   description: Description of script template section.
   message: >-

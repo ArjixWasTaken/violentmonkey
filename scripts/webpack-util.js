@@ -72,14 +72,14 @@ function addWrapperWithGlobals(name, config, defsObj, callback) {
   );
 }
 
-function getCodeMirrorThemes() {
-  const name = 'neo.css';
-  return fs.readdirSync(
-    require.resolve(`codemirror/theme/${name}`).slice(0, -name.length),
-    { withFileTypes: true },
-  ).map(e => e.isFile() && e.name.endsWith('.css') && e.name.slice(0, -4))
-  .filter(Boolean);
-}
+// function getCodeMirrorThemes() {
+//   const name = 'neo.css';
+//   return fs.readdirSync(
+//     require.resolve(`codemirror/theme/${name}`).slice(0, -name.length),
+//     { withFileTypes: true },
+//   ).map(e => e.isFile() && e.name.endsWith('.css') && e.name.slice(0, -4))
+//   .filter(Boolean);
+// }
 
 function readGlobalsFile(path, babelOpts = {}) {
   const { ast, code = !ast } = babelOpts;
@@ -97,5 +97,5 @@ function readGlobalsFile(path, babelOpts = {}) {
 }
 
 exports.addWrapperWithGlobals = addWrapperWithGlobals;
-exports.getCodeMirrorThemes = getCodeMirrorThemes;
+// exports.getCodeMirrorThemes = getCodeMirrorThemes; // Export removed
 exports.readGlobalsFile = readGlobalsFile;

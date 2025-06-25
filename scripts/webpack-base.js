@@ -207,7 +207,7 @@ const getBaseConfig = () => ({
             'injected-web',
           ].includes(c.name),
         },
-        ...splitVendor('codemirror'),
+        // ...splitVendor('codemirror'), // Removed CodeMirror from vendor splitting
       },
     },
     minimizer: isProd ? [
