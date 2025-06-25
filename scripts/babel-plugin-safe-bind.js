@@ -32,13 +32,13 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _helperPluginUtils = require("@babel/helper-plugin-utils");
+const _helperPluginUtils = require("@babel/helper-plugin-utils");
 
-var _pluginSyntaxFunctionBind = require("@babel/plugin-syntax-function-bind");
+const _pluginSyntaxFunctionBind = require("@babel/plugin-syntax-function-bind");
 
-var _core = require("@babel/core");
+const _core = require("@babel/core");
 
-var _default = (0, _helperPluginUtils.declare)(api => {
+const _default = (0, _helperPluginUtils.declare)(api => {
   api.assertVersion(7);
 
   function getTempId(scope) {

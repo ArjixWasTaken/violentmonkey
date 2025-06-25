@@ -13,6 +13,7 @@ module.exports = {
       // debug: true,
       loose: true,
     }],
+    '@babel/preset-typescript',
   ],
   plugins: [
     ['@babel/plugin-transform-runtime', {
@@ -21,7 +22,7 @@ module.exports = {
     }],
     ['babel-plugin-module-resolver', {
       alias,
-      extensions,
+      extensions: ['.js', '.jsx', '.es6', '.es', '.mjs', '.vue', '.ts', '.tsx'],
     }],
     './scripts/babel-plugin-safe-bind.js',
     ['@babel/plugin-transform-for-of', { assumeArray: true }],

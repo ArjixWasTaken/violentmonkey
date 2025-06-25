@@ -156,7 +156,7 @@ addPublicCommands({
     const tabId = tab.id;
     if (!url) url = src.url || tab.url;
     clearFrameData(tabId, frameDoc);
-    let skip = skippedTabs[tabId];
+    const skip = skippedTabs[tabId];
     if (skip > 0) { // first time loading the tab after skipScripts was invoked
       if (isTop) skippedTabs[tabId] = -1; // keeping a phantom for future iframes in this page
       if (popupTabs[tabId]) sendPopupShown(tabId, frameDoc);

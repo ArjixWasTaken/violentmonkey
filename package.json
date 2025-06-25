@@ -11,11 +11,12 @@
     "analyze": "cross-env RUN_ENV=analyze run-s build",
     "i18n": "gulp i18n",
     "copyI18n": "gulp copyI18n",
-    "lint": "run-s lint:js lint:yml",
-    "lint:js": "eslint --ext .js,.vue . --cache",
+    "lint": "run-s lint:ts lint:yml",
+    "lint:ts": "eslint --ext .js,.vue,.ts,.tsx . --cache",
     "lint:yml": "gulp check",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json --composite false",
     "test": "cross-env BABEL_ENV=test TEST=test jest test",
-    "ci": "run-p lint test",
+    "ci": "run-p lint typecheck test",
     "bumpVersion": "gulp bump",
     "bump": "run-s ci \"bumpVersion --commit\"",
     "preversion": "run-s ci \"bumpVersion --reset\""
@@ -29,10 +30,19 @@
     "@babel/plugin-syntax-function-bind": "^7.18.6",
     "@babel/plugin-transform-runtime": "^7.22.10",
     "@babel/preset-env": "^7.22.10",
-    "@babel/preset-typescript": "^7.22.5",
+    "@babel/preset-typescript": "^7.27.1",
+    "@types/babel__core": "^7.20.5",
     "@types/chrome": "^0.0.208",
+    "@types/codemirror": "^5.60.16",
+    "@types/cross-spawn": "^6.0.6",
+    "@types/eslint": "^9.6.1",
     "@types/firefox-webext-browser": "94.0.1",
-    "@types/jest": "^29.5.3",
+    "@types/gulp": "^4.0.17",
+    "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/lodash": "^4.17.18",
+    "@types/node": "^24.0.4",
+    "@types/webpack": "^5.28.5",
     "@typescript-eslint/eslint-plugin": "^6.4.0",
     "@typescript-eslint/parser": "^6.4.0",
     "@violentmonkey/types": "0.2.0",
@@ -51,8 +61,10 @@
     "del": "^6.1.1",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.0.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-jest": "^27.2.3",
     "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-typescript": "^0.14.0",
     "eslint-plugin-vue": "^9.27.0",
     "fancy-log": "^2.0.0",
     "gulp": "^4.0.2",
@@ -79,8 +91,11 @@
     "svg-sprite-loader": "^6.0.11",
     "terser-webpack-plugin": "^5.3.9",
     "through2": "^4.0.2",
-    "typescript": "^5.1.6",
+    "ts-jest": "^29.4.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
     "vinyl": "^2.2.1",
+    "vue-eslint-parser": "^10.1.4",
     "vue-loader": "^17.4.2",
     "vue-tsc": "^2.0.29",
     "webpack": "^5.95.0",
@@ -112,6 +127,18 @@
     "setupFilesAfterEnv": [
       "./test/mock/index.js"
     ],
-    "testEnvironment": "./test/mock/env.js"
+    "testEnvironment": "./test/mock/env.js",
+    "transform": {
+      "^.+\\.(js|jsx)$": "babel-jest",
+      "^.+\\.(ts|tsx)$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "js",
+      "jsx",
+      "ts",
+      "tsx",
+      "json",
+      "vue"
+    ]
   }
 }

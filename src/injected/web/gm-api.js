@@ -197,8 +197,10 @@ export const GM_API = {
 function webAddElement(parent, tag, attrs) {
   let el;
   let errorInfo;
+  // eslint-disable-next-line @typescript-eslint/no-this-alias
+  const self = this;
   bridge.call('AddElement', { tag, attrs }, parent, function _(res) {
-    el = this;
+    el = self; // `this` inside this callback refers to something else.
     errorInfo = res;
   }, 'cbId');
   // DOM error in content script can't be caught by a page-mode userscript so we rethrow it here

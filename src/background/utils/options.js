@@ -84,7 +84,7 @@ export function hookOptionsInit(cb) {
 }
 
 export function getOption(key) {
-  let res = options[key];
+  const res = options[key];
   if (res != null) return res;
   const keys = normalizeKeys(key);
   const mainKey = keys[0];

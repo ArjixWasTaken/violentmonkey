@@ -169,7 +169,7 @@ function makeOwnKeys(local, globals) {
 
 function proxyDescribe(local, name, wrapper, events, returnAsValue) {
   let known;
-  let desc = (known = globalDesc[name]) || updateGlobalDesc(name);
+  const desc = (known = globalDesc[name]) || updateGlobalDesc(name);
   if (!desc) return;
   let { get, set, value } = desc;
   const isChild = !known && isChildWindowKey(name);

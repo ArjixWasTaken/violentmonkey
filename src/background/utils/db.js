@@ -497,7 +497,7 @@ async function getIconCache(scripts) {
   const toGet = [`${ICON_PREFIX}38.png`];
   const toPrime = [];
   const res = {};
-  for (let { custom, meta } of scripts) {
+  for (const { custom, meta } of scripts) {
     let icon = custom.icon || meta.icon;
     if (isValidHttpUrl(icon)) {
       icon = custom.pathMap[icon] || icon;
@@ -640,7 +640,7 @@ export async function parseScript(src) {
   const now = Date.now();
   let { id } = src;
   let script;
-  let oldScript = getScript({ id, meta });
+  const oldScript = getScript({ id, meta });
   if (oldScript) {
     script = oldScript;
     id = script.props.id;

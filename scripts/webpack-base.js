@@ -6,7 +6,9 @@ const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const deepmerge = require('deepmerge');
 const GroupAssetsPlugin = require('./webpack-group-assets-plugin');
-const { alias, extensions, isProd } = require('./common');
+const { alias, extensions: commonExtensions, isProd } = require('./common');
+
+const extensions = [...commonExtensions, '.ts', '.tsx'];
 
 const defaultHtmlOptions = {
   minify: isProd && {
@@ -139,8 +141,17 @@ const getBaseConfig = () => ({
       // JS/TS
       {
         test: /\.m?[jt]sx?$/,
-        use: 'babel-loader',
         exclude: file => /node_modules/.test(file) && !/vueleton|@vue[/\\]shared/.test(file),
+        use: [
+          'babel-loader',
+          {
+            loader: 'ts-loader',
+            options: {
+              appendTsSuffixTo: [/\.vue$/],
+              transpileOnly: true, // Let `vue-tsc` handle type checking
+            },
+          },
+        ],
       },
       // CSS
       {

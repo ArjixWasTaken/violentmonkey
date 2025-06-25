@@ -155,7 +155,7 @@ function deepCopyDiffObjects(src, sample) {
     /* Not using Object.keys and not checking hasOwnProperty because we only use own properties,
      * and this can be very slow for a large value storage that has thousands of keys */
     let a = src[key];
-    let b = sample[key];
+    const b = sample[key];
     if (a && typeof a === 'object') {
       if (b && typeof b === 'object') {
         a = (Array.isArray(a) ? deepCopyDiffArrays : deepCopyDiffObjects)(a, b);

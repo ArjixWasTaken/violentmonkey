@@ -6,6 +6,8 @@ module.exports = {
   extends: [
     'eslint:recommended',
     'plugin:vue/vue3-essential',
+    'plugin:@typescript-eslint/recommended',
+    '@vue/eslint-config-typescript/recommended',
     'prettier',
   ],
   env: {
@@ -13,13 +15,32 @@ module.exports = {
     node: true,
     es2021: true,
   },
+  parser: 'vue-eslint-parser',
   parserOptions: {
-    parser: '@babel/eslint-parser',
+    parser: '@typescript-eslint/parser',
     ecmaVersion: 'latest',
     sourceType: 'module',
+    extraFileExtensions: ['.vue'],
   },
-  plugins: ['jest'],
+  plugins: ['jest', '@typescript-eslint'],
+  settings: {
+    'import/resolver': {
+      typescript: {}, // this loads <rootdir>/tsconfig.json to eslint
+    },
+  },
   rules: {
+    // suppress errors for missing 'import React' in files
+    "react/react-in-jsx-scope": "off",
+    // allow ts-directive comments (used to suppress TypeScript errors)
+    '@typescript-eslint/ban-ts-comment': 'off',
+    // allow usage of `any` type
+    '@typescript-eslint/no-explicit-any': 'off',
+    // allow empty functions
+    '@typescript-eslint/no-empty-function': 'off',
+    // allow non-null assertions
+    '@typescript-eslint/no-non-null-assertion': 'off',
+    // allow unused variables (especially for function arguments)
+    '@typescript-eslint/no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
     'prettier/prettier': 'off',
     'no-shadow': 2,
     'no-unused-expressions': 2,
@@ -95,15 +116,49 @@ module.exports = {
     }
   }, {
     files: ['*.vue'],
+    parser: 'vue-eslint-parser',
+    parserOptions: {
+      parser: '@typescript-eslint/parser',
+    },
     rules: {
       'vue/multi-word-component-names': 0,
     },
   }, {
-    files: ['test/**'],
+    files: ['test/**/*.js', 'test/**/*.ts'],
     env: {
       'jest/globals': true,
     },
-  }],
+  }, {
+    // For JavaScript files
+    files: ['**/*.js'],
+    parser: '@babel/eslint-parser',
+    parserOptions: {
+      requireConfigFile: false, // Allow Babel parser to be used without a Babel config file for JS files
+      babelOptions: {
+        presets: ["@babel/preset-env"], // Basic preset for modern JS
+      },
+    },
+    rules: {
+      // Add any JS-specific rule overrides here if needed in the future
+      // For now, we mostly want to ensure it parses correctly
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-var-requires': 'off', // Allow require in JS files
+    }
+  }, {
+    // For TypeScript files specifically
+    files: ['**/*.ts', '**/*.tsx'],
+    rules: {
+      'no-use-before-define': 'off', // Covered by @typescript-eslint/no-use-before-define
+      '@typescript-eslint/no-use-before-define': ['error', {
+        'functions': false,
+        'classes': true,
+        'variables': false, // allowing for upper scopes
+        'allowNamedExports': true,
+      }],
+      // Add other TypeScript specific rule overrides here if needed
+    }
+  }
+],
 };
 
 function makeOverrides() {

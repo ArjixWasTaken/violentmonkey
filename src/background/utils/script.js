@@ -218,7 +218,7 @@ function inferScriptHome(script) {
  * @returns {string | undefined}
  */
 function inferScriptSupportUrl(script, home = getScriptHome(script)) {
-  let u = home && home.match(re`/
+  const u = home && home.match(re`/
     ^https:\/\/(?:
       (?:
         (greas|sleaz)yfork\.(?:org|cc)(?:\/(?!scripts)[^/]+)? |
