@@ -1,4 +1,5 @@
 const webpack = require('webpack');
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const { ListBackgroundScriptsPlugin } = require('./manifest-helper');
 const { addWrapperWithGlobals, getCodeMirrorThemes } = require('./webpack-util');
 const ProtectWebpackBootstrapPlugin = require('./webpack-protect-bootstrap-plugin');
@@ -79,6 +80,51 @@ module.exports = [
     }));
     config.plugins.push(new ListBackgroundScriptsPlugin({
       minify: false, // keeping readable
+    }));
+    config.plugins.push(new MonacoWebpackPlugin({
+      languages: ['javascript', 'css', 'html', 'json'],
+      features: [
+        '!accessibilityHelp',
+        '!bracketMatching',
+        '!caretOperations',
+        '!clipboard',
+        '!codeAction',
+        '!codelens',
+        '!colorDetector',
+        '!comment',
+        '!contextmenu',
+        '!cursorUndo',
+        '!dnd',
+        '!folding',
+        '!fontZoom',
+        '!format',
+        '!gotoError',
+        '!gotoLine',
+        '!gotoSymbol',
+        '!hover',
+        '!iPadShowKeyboard',
+        '!inPlaceReplace',
+        '!inspectTokens',
+        '!links',
+        '!multicursor',
+        '!parameterHints',
+        '!quickCommand',
+        '!quickHelp',
+        '!quickOutline',
+        '!referenceSearch',
+        '!rename',
+        '!smartSelect',
+        '!snippets',
+        '!suggest',
+        '!toggleHighContrast',
+        '!toggleTabFocusMode',
+        '!transpose',
+        '!unusualLineTerminators',
+        '!viewportSemanticTokens',
+        '!wordHighlighter',
+        '!wordOperations',
+        '!wordPartOperations'
+      ]
     }));
   }),
 
