@@ -80,6 +80,7 @@
     "terser-webpack-plugin": "^5.3.9",
     "through2": "^4.0.2",
     "typescript": "^5.1.6",
+    "monaco-editor-webpack-plugin": "^7.0.1",
     "vinyl": "^2.2.1",
     "vue-loader": "^17.4.2",
     "vue-tsc": "^2.0.29",
@@ -101,6 +102,7 @@
     "@violentmonkey/shortcut": "^1.2.6",
     "@zip.js/zip.js": "2.4.4",
     "codemirror": "^5.65.10",
+    "monaco-editor": "^0.41.0",
     "tldts": "^6.0.14",
     "vue": "^3.4.38",
     "vueleton": "^2.0.2"

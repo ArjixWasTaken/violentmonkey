@@ -62,7 +62,7 @@ import SettingText from '@/common/ui/setting-text';
 import { nextTick, onMounted, ref, watch } from 'vue';
 import Icon from '@/common/ui/icon';
 import { toggleBoolean } from "@/options/utils";
-import cmDefaults from '@/common/ui/code-defaults';
+// import cmDefaults from '@/common/ui/code-defaults'; // Removed import
 
 const $el = ref();
 const hint = ref();
@@ -129,8 +129,8 @@ async function toggleStateHint(curValue) {
     ];
     const opts = {};
     Object.entries({
-      ...(await import('codemirror')).default.defaults,
-      ...cmDefaults,
+      ...(await import('codemirror')).default.defaults, //TODO: Monaco doesn't have a single defaults export like this. This needs to be re-thought.
+      // ...cmDefaults, // cmDefaults was removed
       ...options.get('editor'),
     })
     // sort by keys alphabetically to make it more readable

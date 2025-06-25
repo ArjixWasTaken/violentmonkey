@@ -282,9 +282,14 @@ onMounted(() => {
   const hk = hotkeys.value = [
     [K_PREV_PANEL, ` ${navLabels.join(' < ')}`],
     [K_NEXT_PANEL, ` ${navLabels.join(' > ')}`],
-    ...Object.entries($codeComp.expandKeyMap())
-    .sort((a, b) => compareString(a[1], b[1]) || compareString(a[0], b[0])),
+    // ...Object.entries($codeComp.expandKeyMap()) // TODO: Reimplement for Monaco
+    // .sort((a, b) => compareString(a[1], b[1]) || compareString(a[0], b[0])),
   ];
+  // Add common Monaco keybindings manually for now, or create a new system
+  hk.push(['Ctrl-F', 'Find']);
+  hk.push(['Ctrl-H', 'Replace']);
+  hk.push(['F1', 'Show All Commands']);
+
   if (!K_SAVE) inferSaveHotKey(hk);
 });
 

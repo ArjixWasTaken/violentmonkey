@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col" @focus="cm?.focus()">
-    <div class="editor-code flex-auto" ref="$cmWrapper"/>
+  <div class="flex flex-col" @focus="editor?.focus()">
+    <div class="editor-code flex-auto" ref="$editorWrapper"/>
     <div class="frame-block editor-search flex" v-show="search.show"
          @keydown.esc.exact.stop="clearSearch">
       <form @submit.prevent="goToLine()">
@@ -54,67 +54,43 @@
 </template>
 
 <script>
-import 'codemirror/lib/codemirror.css';
-import 'codemirror/addon/comment/continuecomment';
-import 'codemirror/addon/comment/comment';
-import 'codemirror/addon/edit/matchbrackets';
-import 'codemirror/addon/edit/closebrackets';
-import 'codemirror/addon/fold/foldcode';
-import 'codemirror/addon/fold/foldgutter';
-import 'codemirror/addon/fold/foldgutter.css';
-import 'codemirror/addon/fold/brace-fold';
-import 'codemirror/addon/fold/comment-fold';
-import 'codemirror/addon/search/match-highlighter';
-import 'codemirror/addon/search/searchcursor';
-import 'codemirror/addon/selection/active-line';
-import 'codemirror/keymap/sublime';
-import 'codemirror/addon/hint/show-hint.css';
-import 'codemirror/addon/hint/show-hint';
-import 'codemirror/addon/hint/javascript-hint';
-import 'codemirror/addon/hint/anyword-hint';
-import CodeMirror from 'codemirror';
-import { debounce, getUniqId, i18n, sendCmdDirectly } from '@/common';
-import { deepEqual, forEachEntry, objectPick } from '@/common/object';
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
+import { debounce, i18n, sendCmdDirectly } from '@/common'; // Removed getUniqId
+import { objectPick } from '@/common/object'; // Removed deepEqual, forEachEntry
 import hookSetting from '@/common/hook-setting';
 import options from '@/common/options';
-import './code-autocomplete';
-import cmDefaults from './code-defaults';
-import './code-js-mixed-mode';
-import { killTrailingSpaces } from './code-trailing-spaces';
 
-// Make sure this is still the longest line in the doc
-const CTRL_OPEN = getUniqId('\x02'.repeat(256));
-const CTRL_CLOSE = '\x03'.repeat(256);
-const CTRL_RE = new RegExp(`${CTRL_OPEN}(\\d+)${CTRL_CLOSE}`, 'g');
-const PLACEHOLDER_CLS = 'too-long-placeholder';
-// To identify our CodeMirror markers we're using a Symbol since it's always unique
-const PLACEHOLDER_SYM = Symbol(PLACEHOLDER_CLS);
-const cmCommands = CodeMirror.commands;
-const cmOrigCommands = Object.assign({}, cmCommands);
-const { insertTab, insertSoftTab } = cmCommands;
-/** Using space prefix to show the command at the top of Help list */
-const Esc = ' back / cancel / close / singleSelection';
+// TODO: Placeholder logic might need these or a new approach
+// const CTRL_OPEN = getUniqId('\x02'.repeat(256));
+// const CTRL_CLOSE = '\x03'.repeat(256);
+// const CTRL_RE = new RegExp(`${CTRL_OPEN}(\\d+)${CTRL_CLOSE}`, 'g');
+// const PLACEHOLDER_CLS = 'too-long-placeholder';
+// const PLACEHOLDER_SYM = Symbol(PLACEHOLDER_CLS);
 
-Object.assign(CodeMirror.keyMap.sublime, {
-  'Shift-Ctrl-/': 'commentSelection',
-});
-CodeMirror.registerHelper('hint', 'autoHintWithFallback', (cm, ...args) => {
-  const result = cm.getHelper(cm.getCursor(), 'hint')?.(cm, ...args);
-  // fallback to anyword if default returns nothing (or no default)
-  return result?.list.length ? result : CodeMirror.hint.anyword(cm, ...args);
-});
+// TODO: Reimplement or remove keybinding/command related constants
+// const Esc = ' back / cancel / close / singleSelection';
+
+// TODO: Reimplement or remove custom keymap/helpers
+// Object.assign(CodeMirror.keyMap.sublime, {
+// 'Shift-Ctrl-/': 'commentSelection',
+// });
+// CodeMirror.registerHelper('hint', 'autoHintWithFallback', (cm, ...args) => {
+// const result = cm.getHelper(cm.getCursor(), 'hint')?.(cm, ...args);
+// // fallback to anyword if default returns nothing (or no default)
+// return result?.list.length ? result : CodeMirror.hint.anyword(cm, ...args);
+// });
 </script>
 
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect } from 'vue';
+import { onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect } from 'vue'; // Removed nextTick
 import Tooltip from 'vueleton/lib/tooltip';
 import ToggleButton from '@/common/ui/toggle-button';
-import { HINT_OPTIONS } from './code-autocomplete';
+// import { HINT_OPTIONS } from './code-autocomplete'; // TODO: Reimplement or remove
 
-let cm;
-let maxDisplayLength;
-let placeholders = new Map();
-let placeholderId = 0;
+let editor; // Renamed from cm to editor
+// let maxDisplayLength; // TODO: Reassess if needed with Monaco (placeholder related)
+// let placeholders = new Map(); // TODO: Reassess if needed with Monaco (placeholder related)
+// let placeholderId = 0; // TODO: Reassess if needed with Monaco (placeholder related)
 
 const props = defineProps({
   active: Boolean,
@@ -135,10 +111,10 @@ const props = defineProps({
 });
 const emit = defineEmits(['code-dirty', 'ready']);
 
-const $cmWrapper = ref();
-const $search = ref();
-const jumpPos = ref('');
-const search = reactive({
+const $editorWrapper = ref(); // Renamed from $cmWrapper
+const $search = ref(); // This is for the custom search UI, may be removed
+const jumpPos = ref(''); // This is for the custom go to line UI, may be removed
+const search = reactive({ // This is for the custom search UI, may be removed
   show: false,
   query: '',
   replace: '',
@@ -148,409 +124,416 @@ const search = reactive({
     caseSensitive: false,
   },
 });
-const tooltips = reactive({
+const tooltips = reactive({ // TODO: Reassess if needed with Monaco's command palette / UI
   find: '',
   findPrev: '',
   findNext: '',
   replace: '',
   replaceAll: '',
 });
-const customCommands = Object.assign({
-  // call own methods explicitly to strip `cm` parameter passed by CodeMirror
-  find: () => find(),
-  findNext: () => findNext(),
-  findPrev: () => findNext(1),
-  replace: () => replace(),
-  replaceAll: () => replace(1),
-  autocomplete() {
-    cm.showHint({ hint: CodeMirror.hint.autoHintWithFallback });
-  },
-  [Esc]: () => {
-    if (search.show) {
-      clearSearch();
-    } else {
-      cm.execCommand(cm.listSelections()[1] ? 'singleSelection' : 'close');
-    }
-  },
-  commentSelection() {
-    cm.blockComment(cm.getCursor('from'), cm.getCursor('to'), { fullLines: false });
-  },
-  insertTab() {
-    // pressing Tab key inside a line with no selection will reuse indent type (tabs/spaces)
-    (cm.options.indentWithTabs ? insertTab : insertSoftTab)(cm);
-  },
-}, props.commands);
-const reroutedKeys = {};
+// TODO: Reimplement custom commands using Monaco's action/command system
+// const customCommands = Object.assign({
+//   // call own methods explicitly to strip `cm` parameter passed by CodeMirror
+//   find: () => find(),
+//   findNext: () => findNext(),
+//   findPrev: () => findNext(1),
+//   replace: () => replace(),
+//   replaceAll: () => replace(1),
+//   autocomplete() {
+//     // Monaco has its own autocomplete, trigger via editor.trigger('keyboard', 'editor.action.triggerSuggest')
+//   },
+//   [Esc]: () => {
+//     if (search.show) { // search.show might be removed
+//       clearSearch();
+//     } else {
+//       // Monaco: editor.trigger('keyboard', 'closeFindWidget') or other relevant commands
+//     }
+//   },
+//   commentSelection() {
+//     // Monaco: editor.getAction('editor.action.commentLine').run() or editor.getAction('editor.action.blockComment').run()
+//   },
+//   insertTab() {
+//     // Monaco handles tab insertion based on its options
+//   },
+// }, props.commands);
+// const reroutedKeys = {}; // TODO: Reimplement with Monaco's keybinding system
 
 defineExpose({
-  get cm() {
-    return cm;
+  get editor() { // Renamed from cm to editor
+    return editor;
   },
-  getRealContent,
-  expandKeyMap,
+  getRealContent, // TODO: Reimplement or remove if placeholder logic changes
+  // expandKeyMap,   // TODO: Reimplement or remove for Monaco
 });
 
 function updateValue(val = props.value) {
-  cm?.operation(() => {
-    cm.setValue(val);
-    cm.clearHistory();
-    cm.markClean();
-  });
-}
-function onBeforeChange(cm, change) {
-  if (createPlaceholders(change)) {
-    cm.on('change', onChange); // triggered before DOM is updated
-    change.update?.(null, null, change.text);
-  }
-  // TODO: remove placeholders that belong to a change beyond `undoDepth`
-}
-function onChange(cm) {
-  cm.off('change', onChange);
-  renderPlaceholders();
-}
-function onChanges(cm, [{ origin }]) {
-  // No need to report if changed externally via props.value
-  if (origin !== 'setValue') {
-    emit('code-dirty', !cm.isClean());
+  if (editor && editor.getModel()) {
+    editor.getModel().setValue(val);
+    // TODO: Port clearHistory and markClean if necessary
+    // editor.clearHistory();
+    // editor.markClean();
   }
 }
-function createPlaceholders(change) {
-  const { line, ch } = change.from;
-  let res = false;
-  let len;
-  let prefix;
-  change.text.forEach((textLine, i) => {
-    if (textLine.includes(CTRL_OPEN)) {
-      textLine = getRealContent(textLine);
-    }
-    len = textLine.length - maxDisplayLength;
-    prefix = len > 0 ? textLine.match(/^\s*/)[0] : '';
-    len -= prefix.length;
-    if (len > 0 && len - textLine.match(/\s*$/)[0].length > 0) {
-      res = true;
-      placeholderId += 1;
-      const id = placeholderId;
-      const body = textLine.slice(prefix.length);
-      const replaced = `${CTRL_OPEN}${id}${CTRL_CLOSE}`;
-      placeholders.set(id, {
-        body,
-        el: null,
-        line: line + i,
-        ch: ch + prefix.length,
-        length: replaced.length,
-      });
-      change.text[i] = `${prefix}${replaced}`;
-    }
-  });
-  return res;
-}
-function renderPlaceholders() {
-  placeholders.forEach(p => {
-    if (!p.el) {
-      const { line, ch, body, length } = p;
-      const el = document.createElement('span');
-      const marker = cm.markText({ line, ch }, { line, ch: ch + length }, { replacedWith: el });
-      marker[PLACEHOLDER_SYM] = true;
-      el.className = PLACEHOLDER_CLS;
-      el.title = i18n('editLongLineTooltip');
-      el.textContent = `${body.slice(0, maxDisplayLength)}...[${i18n('editLongLine')}]`;
-      el.onclick = () => {
-        if (!`${window.getSelection()}`) {
-          cm.setCursor(marker.find().from);
-          cm.focus();
-        }
-      };
-      p.el = el;
-    }
-  });
-}
-function initialize() {
-  maxDisplayLength = cm.options.maxDisplayLength;
-  watchEffect(() => cm.setOption('readOnly', props.readOnly));
-  // these are active in all nav tabs
-  cm.setOption('extraKeys', {
-    Esc,
-    F1: 'showHelp',
-    'Ctrl-Space': 'autocomplete',
-  });
-  cm.on('keyHandled', (_cm, _name, e) => {
-    e.stopPropagation();
-  });
-  cm.on('changes', onChanges);
-  cm.on('beforeChange', onBeforeChange);
+
+// TODO: Reimplement placeholder logic if needed for Monaco
+// function onBeforeChange(cm, change) {
+//   if (createPlaceholders(change)) {
+//     cm.on('change', onChange); // triggered before DOM is updated
+//     change.update?.(null, null, change.text);
+//   }
+//   // TODO: remove placeholders that belong to a change beyond `undoDepth`
+// }
+// function onChange(cm) {
+//   cm.off('change', onChange);
+//   renderPlaceholders();
+// }
+
+// TODO: Reimplement or remove onChanges for dirty state
+// function onChanges(cm, [{ origin }]) {
+//   // No need to report if changed externally via props.value
+//   if (origin !== 'setValue') {
+//     emit('code-dirty', !cm.isClean());
+//   }
+// }
+
+// TODO: Reimplement placeholder logic if needed for Monaco
+// function createPlaceholders(change) {
+//   const { line, ch } = change.from;
+//   let res = false;
+//   let len;
+//   let prefix;
+//   change.text.forEach((textLine, i) => {
+//     if (textLine.includes(CTRL_OPEN)) {
+//       textLine = getRealContent(textLine);
+//     }
+//     len = textLine.length - maxDisplayLength;
+//     prefix = len > 0 ? textLine.match(/^\s*/)[0] : '';
+//     len -= prefix.length;
+//     if (len > 0 && len - textLine.match(/\s*$/)[0].length > 0) {
+//       res = true;
+//       placeholderId += 1;
+//       const id = placeholderId;
+//       const body = textLine.slice(prefix.length);
+//       const replaced = `${CTRL_OPEN}${id}${CTRL_CLOSE}`;
+//       placeholders.set(id, {
+//         body,
+//         el: null,
+//         line: line + i,
+//         ch: ch + prefix.length,
+//         length: replaced.length,
+//       });
+//       change.text[i] = `${prefix}${replaced}`;
+//     }
+//   });
+//   return res;
+// }
+// function renderPlaceholders() {
+//   placeholders.forEach(p => {
+//     if (!p.el) {
+//       const { line, ch, body, length } = p;
+//       const el = document.createElement('span');
+//       const marker = cm.markText({ line, ch }, { line, ch: ch + length }, { replacedWith: el });
+//       marker[PLACEHOLDER_SYM] = true;
+//       el.className = PLACEHOLDER_CLS;
+//       el.title = i18n('editLongLineTooltip');
+//       el.textContent = `${body.slice(0, maxDisplayLength)}...[${i18n('editLongLine')}]`;
+//       el.onclick = () => {
+//         if (!`${window.getSelection()}`) {
+//           cm.setCursor(marker.find().from);
+//           cm.focus();
+//         }
+//       };
+//       p.el = el;
+//     }
+//   });
+// }
+
+function initializeEditor() {
+  // maxDisplayLength = editor.getOption('maxDisplayLength'); // Monaco doesn't have this option directly
+  watchEffect(() => editor.updateOptions({ readOnly: props.readOnly }));
+
+  // TODO: Reimplement keybindings and commands
+  // editor.addCommand(monaco.KeyCode.Escape, () => { /* ... */ });
+  // editor.addCommand(monaco.KeyCode.F1, () => { /* ... */ });
+  // editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Space, () => { /* ... */ });
+
+
+  // TODO: Reimplement or remove placeholder logic
+  // editor.onDidScrollChange((e) => { /* ... */ }); // For rendering placeholders
+  // editor.onDidChangeModelContent((e) => { /* ... */ }); // For creating/updating placeholders
+
   if (props.value) updateValue();
-  emit('ready', cm);
+  emit('ready', editor);
 }
+
 function onActive(state) {
-  const onOff = state ? 'on' : 'off';
-  cm[onOff]('blur', onKeyDownToggler);
-  cm[onOff]('focus', onKeyDownToggler);
-  if (state) {
-    Object.assign(cmCommands, customCommands);
-  } else {
-    for (const id in customCommands) {
-      // DANGER! Checking first as another code component may have activated already
-      if (cmCommands[id] === customCommands[id]) {
-        cmCommands[id] = cmOrigCommands[id];
-      }
-    }
-  }
-  onKeyDownToggler(cm, { type: state ? 'blur' : '' });
+  // TODO: Reimplement command handling and focus/blur toggling for custom keybindings
+  // const onOff = state ? 'on' : 'off';
+  // editor[onOff]('blur', onKeyDownToggler);
+  // editor[onOff]('focus', onKeyDownToggler);
+  // if (state) {
+  //   Object.assign(cmCommands, customCommands);
+  // } else {
+  //   for (const id in customCommands) {
+  //     if (cmCommands[id] === customCommands[id]) {
+  //       cmCommands[id] = cmOrigCommands[id];
+  //     }
+  //   }
+  // }
+  // onKeyDownToggler(editor, { type: state ? 'blur' : '' });
 }
-/* reroute hotkeys back to CM when it isn't focused,
+
+/* reroute hotkeys back to editor when it isn't focused,
    but ignore `window` blur (`evt` param is absent) */
-function onKeyDownToggler(cm, evt) {
-  if (evt) {
-    /* DANGER! Using body to precede KeyboardService's target in the bubbling phase.
-     * Mainly to prioritize our custom Esc handler. */
-    document.body::(evt.type === 'blur' ? addEventListener : removeEventListener)(
-      'keydown', onKeyDown);
-  }
-}
-function onKeyDown(e) {
-  const cmd = reroutedKeys[CodeMirror.keyName(e)];
-  if (cmd && cmCommands[cmd]) {
-    e.preventDefault();
-    e.stopPropagation();
-    cm.execCommand(cmd);
-  }
-}
-function findFillQuery(force) {
-  if (!search.query || force) {
-    const sel = cm.listSelections();
-    // use the currently selected text if it's within one line
-    if (sel?.length === 1 && sel[0].anchor.line === sel[0].head.line && !sel[0].empty()) {
-      const query = cm.getSelection();
-      search.queryFilled = !!query;
-      search.query = query;
-    }
-    search.show = true;
-  }
-}
+// function onKeyDownToggler(editor, evt) { // TODO: Reimplement
+//   if (evt) {
+//     document.body::(evt.type === 'blur' ? addEventListener : removeEventListener)(
+//       'keydown', onKeyDown);
+//   }
+// }
+
+// function onKeyDown(e) { // TODO: Reimplement
+//   const cmd = reroutedKeys[CodeMirror.keyName(e)];
+//   if (cmd && cmCommands[cmd]) {
+//     e.preventDefault();
+//     e.stopPropagation();
+//     editor.trigger('keyboard', cmd); // This is an example, actual API might differ
+//   }
+// }
+
+// function findFillQuery(force) { // TODO: Adapt for Monaco's find widget - custom UI removed
+//   if (!search.query || force) {
+//     const selection = editor.getSelection();
+//     if (selection && !selection.isEmpty() && selection.startLineNumber === selection.endLineNumber) {
+//       const query = editor.getModel().getValueInRange(selection);
+//       search.queryFilled = !!query;
+//       search.query = query;
+//     }
+//     search.show = true; // This might be removed if using Monaco's built-in find
+//   }
+// }
+
 /** @param {VMSearchOptions} opts */
-function doSearch(opts) {
-  search.hasResult = !search.query || !!doSearchInternal({ ...opts, wrapAround: true });
-}
+// function doSearch(opts) { // TODO: Adapt for Monaco's find widget - custom UI removed
+//   if (!search.query) {
+//     search.hasResult = true;
+//     return;
+//   }
+//   const findController = editor.getContribution('editor.contrib.findController');
+//   if (opts.reversed) {
+//     findController.findPrevious();
+//   } else {
+//     findController.findNext();
+//   }
+//   // TODO: Update search.hasResult based on Monaco's find status
+// }
+
 /**
  * @param {VMSearchOptions} opts
  * @returns {?true}
  */
-function doSearchInternal({ reversed, wrapAround, pos, reuseCursor } = {}) {
-  const { caseSensitive, useRegex } = search.options;
-  let retry = wrapAround ? 2 : 1;
-  if (!pos || typeof pos === 'string') {
-    pos = cm.getCursor(pos || (reversed ? 'from' : 'to'));
-  }
-  do {
-    let cur;
-    if (reuseCursor) {
-      cur = search.cursor;
-    } else {
-      let { query } = search;
-      if (useRegex) {
-        try {
-          query = new RegExp(query, caseSensitive ? '' : 'gi');
-          search.error = null;
-        } catch (err) {
-          search.error = err;
-          return;
-        }
-      }
-      cur = cm.getSearchCursor(query, pos, { caseFold: !caseSensitive });
-      search.cursor = cur;
-    }
-    while (cur.find(reversed)) {
-      const from = cur.from();
-      const to = cur.to();
-      if (!cm.findMarks(from, to, m => m[PLACEHOLDER_SYM]).length) {
-        reveal(from, to);
-        cm.setSelection(from, to, { scroll: false });
-        return true;
-      }
-    }
-    retry -= 1;
-    if (retry) {
-      pos = {
-        line: reversed ? cm.doc.size : 0,
-        ch: 0,
-      };
-    }
-  } while (retry);
-}
-async function find() {
-  findFillQuery(true);
-  doSearch({ pos: 'from' });
-  await nextTick();
-  const el = $search.value;
-  el.select();
-  el.focus();
-}
-function findNext(reversed) {
-  const refocus = !search.query || !cm.hasFocus();
-  findFillQuery();
-  doSearch({ reversed });
-  if (refocus) nextTick(() => $search.value.focus());
-}
-function clearSearch() {
-  search.show = false;
-  cm.focus();
-}
-function replace(all) {
-  if (props.readOnly) return; // in case this was invoked via hotkey
-  const { replace, query } = search;
-  if (!query || !search.show) {
-    search.show = true;
-    find();
-    return;
-  }
-  if (all) {
-    cm.operation(() => {
-      let opts = { pos: { line: 0, ch: 0 } };
-      while (doSearchInternal(opts)) {
-        search.cursor.replace(replace);
-        opts = { reuseCursor: true };
-      }
-    });
-  } else {
-    const { sel } = cm.doc;
-    doSearch({ pos: 'from' });
-    if (sel.somethingSelected() && sel.equals(cm.doc.sel)) {
-      cm.replaceSelection(replace);
-      doSearch();
-    }
-  }
-}
+// function doSearchInternal({ reversed, wrapAround, pos, reuseCursor } = {}) { // TODO: Remove or heavily adapt
+//   const { caseSensitive, useRegex } = search.options;
+//   let retry = wrapAround ? 2 : 1;
+//   // ...
+// }
+
+// async function find() { // TODO: Adapt for Monaco's find widget - custom UI removed for now
+//   editor.getAction('actions.find').run(); // Show Monaco's find widget
+//   await nextTick();
+// }
+
+// function findNext(reversed) { // TODO: Adapt for Monaco's find widget - custom UI removed for now
+//   const findController = editor.getContribution('editor.contrib.findController');
+//   if (reversed) {
+//     findController.findPrevious();
+//   } else {
+//     findController.findNext();
+//   }
+// }
+
+// function clearSearch() { // TODO: Adapt for Monaco's find widget - custom UI removed for now
+//   search.show = false; // This UI might be removed
+//   editor.getAction('closeFindWidget').run();
+//   editor.focus();
+// }
+
+// function replace(all) { // TODO: Adapt for Monaco's find widget - custom UI removed for now
+//   if (props.readOnly) return;
+//   const findController = editor.getContribution('editor.contrib.findController');
+//   if (!search.query || !search.show) { // search.show might be removed
+//     editor.getAction('editor.action.startFindReplaceAction').run();
+//     return;
+//   }
+//   if (all) {
+//     findController.replaceAll();
+//   } else {
+//     findController.replace();
+//   }
+// }
+
 /** Centers the selection if it's outside of viewport so the surrounding context is visible */
-function reveal(from, to) {
-  const vpm = cm.options.viewportMargin;
-  const { viewFrom, viewTo } = cm.display;
-  const inView = from.line >= viewFrom + vpm
-    && (to.line < viewTo - Math.min(cm.doc.size - viewTo, vpm));
-  cm.scrollIntoView({ from, to },
-    inView ? cm.defaultTextHeight() * 2 : cm.display.wrapper.clientHeight / 2);
-}
-function goToLine() {
+// function reveal(from, to) { // Monaco handles scrolling automatically in most cases. `revealRangeInCenter` can be used.
+//   editor.revealRangeInCenterIfOutsideViewport(new monaco.Range(from.lineNumber, from.column, to.lineNumber, to.column));
+// }
+
+function goToLine() { // This function is tied to the custom search UI, which is being removed/reassessed
   let [line, ch] = jumpPos.value.split(':').map(Number) || [];
   if (line) {
-    line -= 1;
-    ch = ch ? ch - 1 : 0;
-    cm.operation(() => {
-      reveal({ line, ch }, { line, ch });
-      cm.setCursor(line, ch, { scroll: false });
-    });
-    search.show = false;
-    cm.focus();
+    ch = ch || 1; // Monaco lines are 1-indexed
+    editor.revealLineInCenter(line);
+    editor.setPosition({ lineNumber: line, column: ch });
+    search.show = false; // This UI might be removed
+    editor.focus();
   }
 }
-function onCopy(e) {
-  // CM already prepared the correct text in DOM selection, which is particularly
-  // important when using its lineWiseCopyCut option (on by default)
-  const sel = `${getSelection()}` || cm?.getSelection();
+
+function onCopy(e) { // Monaco handles copy internally, but if getRealContent is needed:
+  const sel = editor.getModel().getValueInRange(editor.getSelection());
   if (!sel) return;
-  const text = getRealContent(sel);
+  const text = getRealContent(sel); // Ensure getRealContent is adapted or this is removed
   e.clipboardData.setData('text', text);
   e.preventDefault();
   e.stopImmediatePropagation();
 }
-function getRealContent(text) {
+
+function getRealContent(text) { // TODO: Reimplement or remove placeholder logic
   if (text == null) {
-    text = killTrailingSpaces(cm, placeholders);
+    // text = killTrailingSpaces(editor, placeholders); // killTrailingSpaces needs to be adapted for Monaco
+    text = editor?.getValue() || ''; // Basic version, ensure editor exists
   }
-  if (placeholders.size) {
-    text = text.replace(CTRL_RE, (_, id) => placeholders.get(+id)?.body || '');
-  }
+  // TODO: Adapt placeholder logic if it's kept
+  // if (placeholders.size) {
+  //   text = text.replace(CTRL_RE, (_, id) => placeholders.get(+id)?.body || '');
+  // }
   return text;
 }
-function expandKeyMap(res, ...maps) {
-  if (!res) {
-    const { keyMap, extraKeys } = cm.options;
-    maps = [extraKeys, keyMap];
-    res = {};
-  }
-  maps.forEach((map) => {
-    if (typeof map === 'string') map = CodeMirror.keyMap[map];
-    map::forEachEntry(([key, value]) => {
-      if (!res[key] && CodeMirror.commands[value]) {
-        res[key] = value;
-      }
-    });
-    if (map.fallthrough) expandKeyMap(res, map.fallthrough);
-  });
-  delete res.fallthrough;
-  return res;
-}
 
-watch(() => props.active, onActive);
+// function expandKeyMap(res, ...maps) { // TODO: Reimplement for Monaco's keybinding system
+//   // ... (Monaco uses a different keybinding system)
+//   return res;
+// }
+
+watch(() => props.active, onActive); // TODO: Reimplement onActive
 watch(() => props.mode, value => {
-  cm.setOption('mode', value || cmDefaults.mode);
+  if (editor && editor.getModel()) {
+    monaco.editor.setModelLanguage(editor.getModel(), value || 'javascript');
+  }
 });
 watch(() => props.value, updateValue);
 
 onMounted(() => {
   let userOpts = options.get('editor');
-  const theme = options.get('editorThemeName');
-  const internalOpts = props.cmOptions || {};
-  const opts = {
-    ...cmDefaults,
-    ...userOpts,
-    ...theme && { theme },
-    ...internalOpts, // internal options passed via `props` have the highest priority
-    mode: props.mode || userOpts.mode || cmDefaults.mode,
+  const theme = options.get('editorThemeName') || 'vs'; // Default to 'vs' for Monaco
+  const internalOpts = props.cmOptions || {}; // These will need to be mapped to Monaco options
+
+  // TODO: Map CodeMirror options to Monaco options
+  const monacoOptions = {
+    value: props.value,
+    language: props.mode || userOpts.mode || 'javascript',
+    theme: theme,
+    readOnly: props.readOnly,
+    automaticLayout: true,
+    // Common options to port:
+    lineNumbers: userOpts.lineNumbers ? 'on' : 'off', // Example mapping
+    // foldGutter: userOpts.foldGutter, // Monaco: folding, showFoldingControls
+    // gutters: ..., // Monaco: lineNumbers, glyphMargin, etc.
+    // matchBrackets: userOpts.matchBrackets, // Monaco: matchBrackets
+    // autoCloseBrackets: userOpts.autoCloseBrackets, // Monaco: autoClosingBrackets
+    // highlightSelectionMatches: userOpts.highlightSelectionMatches, // Monaco: selectionHighlight
+    // keyMap: 'sublime', // Monaco has some presets, or manual keybindings
+    // maxDisplayLength: ..., // Monaco: maxTokenizationLineLength (for performance, not display)
+    // --- Monaco specific or equivalents ---
+    folding: !!userOpts.foldGutter,
+    showFoldingControls: userOpts.foldGutter ? 'always' : 'never',
+    glyphMargin: !!userOpts.foldGutter, // For folding markers
+    minimap: {
+      enabled: userOpts.minimap !== undefined ? userOpts.minimap : true, // Example: assuming a new option
+    },
+    wordWrap: userOpts.lineWrapping ? 'on' : 'off', // Example mapping for lineWrapping
+    // Trailing spaces
+    "renderWhitespace": userOpts.showTrailingSpace ? "boundary" : "none", // Example
+    "trimAutoWhitespace": userOpts.killTrailingSpaceOnSave !== undefined ? userOpts.killTrailingSpaceOnSave : true, // Example
+    // Autocomplete
+    quickSuggestions: userOpts.autocompleteOnTyping !== undefined ? userOpts.autocompleteOnTyping : true, // Example
+    suggestOnTriggerCharacters: userOpts.autocompleteOnTyping !== undefined ? userOpts.autocompleteOnTyping : true, // Example
+    ...internalOpts, // Mapped internal options
   };
-  const cmWrapper = $cmWrapper.value;
-  const ho = opts[HINT_OPTIONS];
-  const hoWord = ho?.word;
-  if (hoWord) try { ho.word = new RegExp(hoWord); } catch {/**/}
-  cm = CodeMirror(cmWrapper, opts);
-  initialize();
-  onActive(true); // DANGER! Must precede expandKeyMap.
-  expandKeyMap()::forEachEntry(([key, cmd]) => {
-    if (cmd in tooltips) {
-      tooltips[cmd] += `${tooltips[cmd] ? ', ' : ''}${key}`;
-      reroutedKeys[key] = cmd;
-    }
-  });
-  // pressing Tab key inside a line with no selection will reuse indent size
-  if (!opts.tabSize) cm.options.tabSize = cm.options.indentUnit;
-  cmWrapper::addEventListener('copy', onCopy);
+
+  editor = monaco.editor.create($editorWrapper.value, monacoOptions);
+  initializeEditor();
+  onActive(true); // DANGER! Must precede expandKeyMap. // TODO: Reassess expandKeyMap
+
+  // TODO: Reimplement keybinding tooltips and reroutedKeys
+  // expandKeyMap()::forEachEntry(([key, cmd]) => {
+  //   if (cmd in tooltips) {
+  //     tooltips[cmd] += `${tooltips[cmd] ? ', ' : ''}${key}`;
+  //     reroutedKeys[key] = cmd;
+  //   }
+  // });
+
+  // TODO: Reimplement tab insertion logic if needed
+  // if (!opts.tabSize) editor.options.tabSize = editor.options.indentUnit;
+
+  $editorWrapper.value::addEventListener('copy', onCopy); // May not be needed if getRealContent is removed
+
   hookSetting('editor', (newUserOpts) => {
-    // Use defaults for keys that were present in the old userOpts but got deleted in newUserOpts
-    ({ ...cmDefaults, ...newUserOpts })::forEachEntry(([key, val]) => {
-      if ((key in newUserOpts || key in userOpts)
-      && !(key in internalOpts)
-      && !deepEqual(cm.getOption(key), val)) {
-        cm.setOption(key, val);
-      }
-    });
+    const newMonacoOpts = {};
+    // TODO: Map newUserOpts to Monaco options and update editor.updateOptions(newMonacoOpts)
+    // Example:
+    if (newUserOpts.lineNumbers !== undefined) newMonacoOpts.lineNumbers = newUserOpts.lineNumbers ? 'on' : 'off';
+    if (newUserOpts.lineWrapping !== undefined) newMonacoOpts.wordWrap = newUserOpts.lineWrapping ? 'on' : 'off';
+    if (newUserOpts.foldGutter !== undefined) {
+        newMonacoOpts.folding = !!newUserOpts.foldGutter;
+        newMonacoOpts.showFoldingControls = newUserOpts.foldGutter ? 'always' : 'never';
+        newMonacoOpts.glyphMargin = !!newUserOpts.foldGutter;
+    }
+    if (newUserOpts.showTrailingSpace !== undefined) newMonacoOpts.renderWhitespace = newUserOpts.showTrailingSpace ? "boundary" : "none";
+    if (newUserOpts.killTrailingSpaceOnSave !== undefined) newMonacoOpts.trimAutoWhitespace = newUserOpts.killTrailingSpaceOnSave;
+    if (newUserOpts.autocompleteOnTyping !== undefined) {
+        newMonacoOpts.quickSuggestions = newUserOpts.autocompleteOnTyping;
+        newMonacoOpts.suggestOnTriggerCharacters = newUserOpts.autocompleteOnTyping;
+    }
+    // ... map other options ...
+    editor.updateOptions(newMonacoOpts);
     userOpts = newUserOpts;
   });
+
   sendCmdDirectly('Storage', ['base', 'getOne', 'editorSearch']).then(prev => {
     const saveSearchLater = debounce(() => {
       sendCmdDirectly('Storage', ['base', 'setOne', 'editorSearch',
         objectPick(search, ['query', 'replace', 'options'])]);
     }, 500);
-    const searchAgain = () => {
+    const searchAgain = () => { // TODO: Adapt for Monaco
       saveSearchLater();
-      doSearch({ pos: 'from' });
+      // doSearch({ pos: 'from' });
+      if (search.query && editor.getContribution('editor.contrib.findController').getState().searchString !== search.query) {
+        editor.getContribution('editor.contrib.findController').setSearchString(search.query);
+      }
+      // This might trigger search automatically or require findNext()
     };
     if (prev) Object.assign(search, prev);
     watch(() => search.query, () => {
       if (!search.queryFilled) searchAgain();
       else search.queryFilled = null;
     });
-    watch(() => search.options, searchAgain, { deep: true });
-    watch(() => search.replace, saveSearchLater);
+    watch(() => search.options, searchAgain, { deep: true }); // TODO: connect search.options to Monaco find widget
+    watch(() => search.replace, saveSearchLater); // TODO: connect search.replace to Monaco find widget
   });
+
   hookSetting('editorThemeName', val => {
-    if (val != null && val !== cm.options.theme) {
-      cm.setOption('theme', val);
+    if (val != null && val !== editor.getOption(monaco.editor.EditorOption.theme)) {
+      monaco.editor.setTheme(val);
     }
   });
   updateValue();
 });
 
 onBeforeUnmount(() => {
-  onActive(false);
+  onActive(false); // TODO: Reimplement
+  if (editor) {
+    editor.dispose();
+  }
 });
 </script>
 
