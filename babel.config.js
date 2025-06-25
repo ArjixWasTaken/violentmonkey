@@ -23,7 +23,7 @@ module.exports = {
       alias,
       extensions,
     }],
-    './scripts/babel-plugin-safe-bind.js',
+    '@babel/plugin-proposal-function-bind',
     ['@babel/plugin-transform-for-of', { assumeArray: true }],
     ['transform-modern-regexp', { useRe: true }],
   ],

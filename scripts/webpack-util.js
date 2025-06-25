@@ -97,5 +97,4 @@ function readGlobalsFile(path, babelOpts = {}) {
 }
 
 exports.addWrapperWithGlobals = addWrapperWithGlobals;
-// exports.getCodeMirrorThemes = getCodeMirrorThemes; // Export removed
 exports.readGlobalsFile = readGlobalsFile;

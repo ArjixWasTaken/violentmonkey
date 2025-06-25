@@ -59,7 +59,7 @@ export const language = {
       // More specific matches should come before general ones.
 
       // @name, @author, @description, @nocompat, @license, @copyright
-      [/^(\/\/\s*)(@(?:name(?::\w+)?|author|description|nocompat|license|copyright))(\s+)(.*)/, [
+      [/^(\/\/\s*)([@](?:name(?::\w+)?|author|description|nocompat|license|copyright))(\s+)(.*)/, [
         'comment.doc', // '// '
         'comment.doc.tag', // '@rule'
         'comment.doc', // ' '
@@ -67,7 +67,7 @@ export const language = {
       ]],
 
       // @grant
-      [/^(\/\/\s*)(@grant)(\s+)(.*)/, [
+      [/^(\/\/\s*)([@]grant)(\s+)(.*)/, [
         'comment.doc', // '// '
         'comment.doc.tag', // '@grant'
         'comment.doc', // ' '
@@ -75,7 +75,7 @@ export const language = {
       ]],
 
       // @run-at
-      [/^(\/\/\s*)(@run-at)(\s+)(.*)/, [
+      [/^(\/\/\s*)([@]run-at)(\s+)(.*)/, [
         'comment.doc',
         'comment.doc.tag',
         'comment.doc',
@@ -83,7 +83,7 @@ export const language = {
       ]],
 
       // @inject-into
-      [/^(\/\/\s*)(@inject-into)(\s+)(.*)/, [
+      [/^(\/\/\s*)([@]inject-into)(\s+)(.*)/, [
         'comment.doc',
         'comment.doc.tag',
         'comment.doc',
@@ -91,7 +91,7 @@ export const language = {
       ]],
 
       // URLs: @namespace, @homepage, @homepageURL, @website, @source, @icon, @iconURL, @defaulticon, @icon64, @icon64URL, @updateURL, @downloadURL, @supportURL, @require, @connect
-      [/^(\/\/\s*)(@(?:namespace|homepage(?:URL)?|website|source|icon(?:URL)?|defaulticon|icon64(?:URL)?|updateURL|downloadURL|supportURL|require|connect))(\s+)(.*)/, [
+      [/^(\/\/\s*)([@](?:namespace|homepage(?:URL)?|website|source|icon(?:URL)?|defaulticon|icon64(?:URL)?|updateURL|downloadURL|supportURL|require|connect))(\s+)(.*)/, [
         'comment.doc',
         'comment.doc.tag',
         'comment.doc',
@@ -99,7 +99,7 @@ export const language = {
       ]],
 
       // @version
-      [/^(\/\/\s*)(@version)(\s+)(.*)/, [
+      [/^(\/\/\s*)([@]version)(\s+)(.*)/, [
         'comment.doc',
         'comment.doc.tag',
         'comment.doc',
@@ -109,7 +109,7 @@ export const language = {
       // @match, @include, @exclude (these might need glob/regex patterns)
       // For simplicity, treating the rest of the line as a string for now.
       // A more advanced version would parse globs.
-      [/^(\/\/\s*)(@(?:match|include|exclude))(\s+)(.*)/, [
+      [/^(\/\/\s*)([@](?:match|include|exclude))(\s+)(.*)/, [
         'comment.doc',
         'comment.doc.tag',
         'comment.doc',
@@ -117,7 +117,7 @@ export const language = {
       ]],
 
       // @resource name URL
-      [/^(\/\/\s*)(@resource)(\s+)([\w-]+)(\s+)(.*)/, [
+      [/^(\/\/\s*)([@]resource)(\s+)([\w-]+)(\s+)(.*)/, [
         'comment.doc',        // '// '
         'comment.doc.tag',    // '@resource'
         'comment.doc',        // ' '
@@ -127,7 +127,7 @@ export const language = {
       ]],
 
       // @noframes, @unwrap (no value)
-      [/^(\/\/\s*)(@(?:noframes|unwrap))(\s*.*)/, [
+      [/^(\/\/\s*)([@](?:noframes|unwrap))(\s*.*)/, [
         'comment.doc',
         'comment.doc.tag',
         'comment.doc.string', // any trailing part
